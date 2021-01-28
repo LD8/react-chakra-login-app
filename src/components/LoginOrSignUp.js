@@ -8,58 +8,59 @@ import {
   Checkbox,
   InputLeftElement,
   Text,
-  chakra,
   FormControl,
   FormErrorMessage,
+  useToast,
 } from '@chakra-ui/react'
 import LoginExtra from './LoginExtra'
 import { FaUser, FaLock, FaAt } from 'react-icons/fa'
-// import { useFormik } from 'formik'
-// import * as Yup from 'yup'
 import { login, register as signUp } from '../api'
+import { yupResolver } from '@hookform/resolvers/yup'
+import * as yup from 'yup'
 import { useForm } from 'react-hook-form'
 
 export default function LoginOrSignUp({ isLogin = false }) {
   const [show, setShow] = useState(false)
   const handleClick = () => setShow(!show)
-  // const { handleSubmit, getFieldProps, touched, errors } = useFormik({
-  //   initialValues: {
-  //     username: '',
-  //     email: '',
-  //     password: '',
-  //   },
-  //   validationSchema: Yup.object({
-  //     username: Yup.string().min(6).max(15).required(),
-  //     email: Yup.string().email(),
-  //     password: Yup.string().min(6).max(50).required(),
-  //   }),
-  //   onSubmit: async (values) => {
-  //     if (isLogin) {
-  //       const { data } = await login(values)
-  //       console.log('login res ', data)
-  //     } else {
-  //       const { data } = await register(values)
-  //       console.log('register res ', data)
-  //     }
-  //   },
-  // })
-  const FullVStack = chakra(VStack, { baseStyle: { w: 'full' } })
 
-  const { handleSubmit, errors, register, formState } = useForm()
+  const schema = yup.object({
+    username: isLogin ? yup.string().min(6).max(15) : yup.string().min(6).max(15).required(),
+    email: yup.string().email().required(),
+    password: yup.string().min(6).max(50).required(),
+  })
 
-  function valiUsername(value) {
-    if (!value) {
-      return 'Name is required'
-    } else return true
-  }
-
+  const { handleSubmit, errors, register, formState } = useForm({
+    resolver: yupResolver(schema),
+  })
+  const toast = useToast()
   const onSubmit = async (values) => {
-    if (isLogin) {
-      const { data } = await login(values)
-      console.log('login res ', data)
-    } else {
-      const { data } = await signUp(values)
-      console.log('signUp res ', data)
+    try {
+      const { data } = isLogin ? await login(values) : await signUp(values)
+      if (data.user && data.user.token) {
+        toast({
+          position: 'top',
+          description: `${isLogin ? 'Login' : 'Sign up'} successfully: ${data.user.username.toUpperCase()}`,
+          status: 'info',
+          duration: 9000,
+          isClosable: true,
+        })
+        setTimeout(() => {
+          window.open('https://donlee.online', '_blank').focus()
+        }, 2500)
+      }
+    } catch (error) {
+      const errors = error.response.data.errors
+      Object.keys(errors).forEach((key) => {
+        errors[key].forEach((e) => {
+          toast({
+            position: 'top',
+            description: `${key} ${e}`,
+            status: 'error',
+            duration: 9000,
+            isClosable: true,
+          })
+        })
+      })
     }
   }
 
@@ -67,34 +68,28 @@ export default function LoginOrSignUp({ isLogin = false }) {
     <form onSubmit={handleSubmit(onSubmit)}>
       <VStack spacing={6} mt={4}>
         {!isLogin && (
-          <FullVStack>
+          <VStack w="full">
             <FormControl isInvalid={errors.username}>
               <InputGroup>
                 <InputLeftElement pointerEvents="none" children={<FaUser color="gray.700" />} />
-                <Input placeholder="Please enter username" name="username" ref={register({ validate: valiUsername })} />
+                <Input placeholder="Please enter username" name="username" ref={register} />
               </InputGroup>
-              <FormErrorMessage>{errors.username && errors.username.message}</FormErrorMessage>
+              <FormErrorMessage>{errors.username?.message}</FormErrorMessage>
             </FormControl>
-          </FullVStack>
+          </VStack>
         )}
 
-        <FullVStack>
+        <VStack w="full">
           <FormControl isInvalid={errors.email}>
             <InputGroup>
               <InputLeftElement pointerEvents="none" children={<FaAt color="gray.700" />} />
-              <Input
-                as="input"
-                placeholder="Please enter your email"
-                type="email"
-                name="email"
-                ref={register({ validate: valiUsername })}
-              />
+              <Input type="email" placeholder="Please enter your email" name="email" ref={register} />
             </InputGroup>
-            <FormErrorMessage>{errors.email && errors.email.message}</FormErrorMessage>
+            <FormErrorMessage>{errors.email?.message}</FormErrorMessage>
           </FormControl>
-        </FullVStack>
+        </VStack>
 
-        <FullVStack>
+        <VStack w="full">
           <FormControl isInvalid={errors.password}>
             <InputGroup>
               <InputLeftElement pointerEvents="none" children={<FaLock color="gray.700" />} />
@@ -103,7 +98,7 @@ export default function LoginOrSignUp({ isLogin = false }) {
                 type={show ? 'text' : 'password'}
                 placeholder="Please enter password"
                 name="password"
-                ref={register({ validate: valiUsername })}
+                ref={register}
               />
               <InputRightElement width="4.5rem">
                 <Button h="1.75rem" size="sm" onClick={handleClick}>
@@ -111,9 +106,9 @@ export default function LoginOrSignUp({ isLogin = false }) {
                 </Button>
               </InputRightElement>
             </InputGroup>
-            <FormErrorMessage>{errors.password && errors.password.message}</FormErrorMessage>
+            <FormErrorMessage>{errors.password?.message}</FormErrorMessage>
           </FormControl>
-        </FullVStack>
+        </VStack>
 
         {isLogin && (
           <Checkbox colorScheme="teal" w="full" pl="3">
