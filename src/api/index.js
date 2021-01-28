@@ -9,11 +9,11 @@ const request = axios.create()
       }
     }
  */
-export const login = (user) =>
+export const login = (data) =>
   request({
     method: 'POST',
-    url: 'https://conduit.productionready.io/users/login',
-    user,
+    url: 'https://conduit.productionready.io/api/users/login',
+    data: { user: data },
   })
 
 /**
@@ -24,9 +24,9 @@ export const login = (user) =>
      }
     }
  */
-export const register = (user) =>
+export const register = (data) =>
   request({
     method: 'POST',
-    url: 'https://conduit.productionready.io/users',
-    user,
+    url: 'https://conduit.productionready.io/api/users',
+    data: { user: data },
   })
